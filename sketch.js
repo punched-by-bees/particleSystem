@@ -59,11 +59,13 @@ let gravity;
 
 let myBoolean;
 
+let timer = 0;
+let counted = false;
 
 function setup(){
   createCanvas(800, 800);
-  croissants[0] = loadImage('assets/croissant1.png');
-  croissants[1] = loadImage('assets/croissant2.png');
+  croissants[0] = loadImage('assets/beetleGuy.png');
+  croissants[1] = loadImage('assets/beetleGuy.png');
   wind = createVector(0.1, 0);
   gravity = createVector(0, 0.1);
 
@@ -72,10 +74,6 @@ function setup(){
   }
 
 }
-
-
-let timer = 0;
-let counted = false;
 
 function draw(){
   background(0);
@@ -98,7 +96,9 @@ class Particle {
     constructor(index_){ //what data our objects have
       this.location = createVector(random(width), random(height));
       this.velocity = p5.Vector.random2D(); //instead of xSpeed and ySpeed
+      //purpose of .mult for speed/velocity
       this.velocity.mult(random(-1, 1));
+      print(this.velocity);
       this.size = 25;
       this.image = int(random(2));
       this.index = index_;

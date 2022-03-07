@@ -1,161 +1,241 @@
-// let Particles = [];
-// let beetle = [];
+//current goal:
+//figure out how to make particles move in a sqiggly line
+//vs a straight line like our crossoint example
 
-// function setup() {
-//   createCanvas(800, 800);
 
-//   for (var i = 0; i < 100; i++) {
-//     particles.push(new Particle);
-//   }
+//goals:
+  //make individual objects, bugs, that move in a sqiggly
+  // spaghetti like pattern and shake simultaniusly
+  // they move unpredictably
+  //find image with transparent background
+  //decide whether mouse to create particles is a desired
+  //behavior like in boids sketch
+  //make particle system work with only one array of 
+  //images insead of 2
+  //make border of screen for collision logic of bugs 
+  //to be larger than camera view, so they leave view 
+  //compleatly and then return
+
   
-  
-// }
 
-// function draw(){
-//   background(0);
-//   beetle = loadImage('beetleGuy.png');
-//   for (var i = 0; i < particles.length; i++) {
-//       particles.push(new Particle);
-//   }
+let flock;
 
-// //myParticle.move();
-// //myParticle.display();
+function setup() {
+  createCanvas(640, 360);
+  createP("Drag the mouse to generate new boids.");
 
-// }
+  flock = new Flock();
+  // Add an initial set of boids into the system
+  for (let i = 0; i < 100; i++) {
+    let b = new Boid(width / 2,height / 2);
+    flock.addBoid(b);
+  }
+}
 
-// class Particle {
-//   constructor(){
-//     this.x = random(width);
-//     this.y = random(height);
-//     this.size = size;
-//     this.xspeed = random(-1, 1);
-//     this.yspeed = random(-1, 1);
-//   }
+function draw() {
+  background(51);
+  flock.run();
+}
 
-// display{
-//   image(beetleGuy, this.x, this.y, this.size, this.size
-//   ellipse(this.x, this.y, this.size, this.size);
-//    }
-//    move(){
-//       this.x = this.x + this.xSpeed;
-//       this.y = this.y + this.ySpeed;
-//       if(this.x > width || this.x <0){
-//         this.x = random(width);
-//       if (this.y > heigth || this.y < 0){
-//       }
-//         this.y = random(height);
-//       }
-//       }
+// Add a new boid into the System
+function mouseDragged() {
+  flock.addBoid(new Boid(mouseX, mouseY));
+}
 
-// }
+// The Nature of Code
+// Daniel Shiffman
+// http://natureofcode.com
 
-// }
-// //let thing = {x: 430, y: 200, size: 100, xspeed: -0.6, yspeed: 0.345};
+// Flock object
+// Does very little, simply manages the array of all the boids
 
-let particles = [];
-let croissants = [];
-let wind; 
-let gravity; 
+function Flock() {
+  // An array for all the boids
+  this.boids = []; // Initialize the array
+}
 
-let myBoolean;
+Flock.prototype.run = function() {
+  for (let i = 0; i < this.boids.length; i++) {
+    this.boids[i].run(this.boids);  // Passing the entire list of boids to each boid individually
+  }
+}
 
-let timer = 0;
-let counted = false;
+Flock.prototype.addBoid = function(b) {
+  this.boids.push(b);
+}
 
-function setup(){
-  createCanvas(800, 800);
-  croissants[0] = loadImage('assets/beetleGuy.png');
-  croissants[1] = loadImage('assets/beetleGuy.png');
-  wind = createVector(0.1, 0);
-  gravity = createVector(0, 0.1);
+// The Nature of Code
+// Daniel Shiffman
+// http://natureofcode.com
 
-  for (var i = 0; i < 100; i++) {
-    particles.push(new Particle(i));
+// Boid class
+// Methods for Separation, Cohesion, Alignment added
+
+function Boid(x, y) {
+  this.acceleration = createVector(0, 0);
+  this.velocity = createVector(random(-1, 1), random(-1, 1));
+  this.position = createVector(x, y);
+  this.r = 3.0;
+  this.maxspeed = 3;    // Maximum speed
+  this.maxforce = 0.05; // Maximum steering force
+}
+
+Boid.prototype.run = function(boids) {
+  this.flock(boids);
+  this.update();
+  this.borders();
+  this.render();
+}
+
+Boid.prototype.applyForce = function(force) {
+  // We could add mass here if we want A = F / M
+  this.acceleration.add(force);
+}
+
+// We accumulate a new acceleration each time based on three rules
+Boid.prototype.flock = function(boids) {
+  let sep = this.separate(boids);   // Separation
+  let ali = this.align(boids);      // Alignment
+  let coh = this.cohesion(boids);   // Cohesion
+  // Arbitrarily weight these forces
+  sep.mult(1.5);
+  ali.mult(1.0);
+  coh.mult(1.0);
+  // Add the force vectors to acceleration
+  this.applyForce(sep);
+  this.applyForce(ali);
+  this.applyForce(coh);
+}
+
+// Method to update location
+Boid.prototype.update = function() {
+  // Update velocity
+  this.velocity.add(this.acceleration);
+  // Limit speed
+  this.velocity.limit(this.maxspeed);
+  this.position.add(this.velocity);
+  // Reset accelertion to 0 each cycle
+  this.acceleration.mult(0);
+}
+
+// A method that calculates and applies a steering force towards a target
+// STEER = DESIRED MINUS VELOCITY
+Boid.prototype.seek = function(target) {
+  let desired = p5.Vector.sub(target,this.position);  // A vector pointing from the location to the target
+  // Normalize desired and scale to maximum speed
+  desired.normalize();
+  desired.mult(this.maxspeed);
+  // Steering = Desired minus Velocity
+  let steer = p5.Vector.sub(desired,this.velocity);
+  steer.limit(this.maxforce);  // Limit to maximum steering force
+  return steer;
+}
+
+Boid.prototype.render = function() {
+  // Draw a triangle rotated in the direction of velocity
+  let theta = this.velocity.heading() + radians(90);
+  fill(127);
+  stroke(200);
+  push();
+  translate(this.position.x, this.position.y);
+  rotate(theta);
+  beginShape();
+  vertex(0, -this.r * 2);
+  vertex(-this.r, this.r * 2);
+  vertex(this.r, this.r * 2);
+  endShape(CLOSE);
+  pop();
+}
+
+// Wraparound
+Boid.prototype.borders = function() {
+  if (this.position.x < -this.r)  this.position.x = width + this.r;
+  if (this.position.y < -this.r)  this.position.y = height + this.r;
+  if (this.position.x > width + this.r) this.position.x = -this.r;
+  if (this.position.y > height + this.r) this.position.y = -this.r;
+}
+
+// Separation
+// Method checks for nearby boids and steers away
+Boid.prototype.separate = function(boids) {
+  let desiredseparation = 25.0;
+  let steer = createVector(0, 0);
+  let count = 0;
+  // For every boid in the system, check if it's too close
+  for (let i = 0; i < boids.length; i++) {
+    let d = p5.Vector.dist(this.position,boids[i].position);
+    // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
+    if ((d > 0) && (d < desiredseparation)) {
+      // Calculate vector pointing away from neighbor
+      let diff = p5.Vector.sub(this.position, boids[i].position);
+      diff.normalize();
+      diff.div(d);        // Weight by distance
+      steer.add(diff);
+      count++;            // Keep track of how many
+    }
+  }
+  // Average -- divide by how many
+  if (count > 0) {
+    steer.div(count);
   }
 
-}
-
-function draw(){
-  background(0);
-  gravity.y = map(mouseY, 0, width, 0, 0.1);
-  wind.x = map(mouseX, 0, width, -0.1, 0.1);
-  //print(gravity.y);
- 
-      
-  for (var i = 0; i < particles.length; i++) {
-    particles[i].move();
-    particles[i].display();
+  // As long as the vector is greater than 0
+  if (steer.mag() > 0) {
+    // Implement Reynolds: Steering = Desired - Velocity
+    steer.normalize();
+    steer.mult(this.maxspeed);
+    steer.sub(this.velocity);
+    steer.limit(this.maxforce);
   }
+  return steer;
+}
 
-  // myParticle.move();
-  // myParticle.display();
+// Alignment
+// For every nearby boid in the system, calculate the average velocity
+Boid.prototype.align = function(boids) {
+  let neighbordist = 50;
+  let sum = createVector(0,0);
+  let count = 0;
+  for (let i = 0; i < boids.length; i++) {
+    let d = p5.Vector.dist(this.position,boids[i].position);
+    if ((d > 0) && (d < neighbordist)) {
+      sum.add(boids[i].velocity);
+      count++;
+    }
+  }
+  if (count > 0) {
+    sum.div(count);
+    sum.normalize();
+    sum.mult(this.maxspeed);
+    let steer = p5.Vector.sub(sum, this.velocity);
+    steer.limit(this.maxforce);
+    return steer;
+  } else {
+    return createVector(0, 0);
+  }
+}
+
+// Cohesion
+// For the average location (i.e. center) of all nearby boids, calculate steering vector towards that location
+Boid.prototype.cohesion = function(boids) {
+  let neighbordist = 50;
+  let sum = createVector(0, 0);   // Start with empty vector to accumulate all locations
+  let count = 0;
+  for (let i = 0; i < boids.length; i++) {
+    let d = p5.Vector.dist(this.position,boids[i].position);
+    if ((d > 0) && (d < neighbordist)) {
+      sum.add(boids[i].position); // Add location
+      count++;
+    }
+  }
+  if (count > 0) {
+    sum.div(count);
+    return this.seek(sum);  // Steer towards the location
+  } else {
+    return createVector(0, 0);
+  }
+}
+
+
+
   
-}
-
-class Particle {
-    constructor(index_){ //what data our objects have
-      this.location = createVector(random(width), random(height));
-      this.velocity = p5.Vector.random2D(); //instead of xSpeed and ySpeed
-      //purpose of .mult for speed/velocity
-      this.velocity.mult(random(-1, 1));
-      print(this.velocity);
-      this.size = 25;
-      this.image = int(random(2));
-      this.index = index_;
-    }
-
-    display(){
-      imageMode(CENTER);
-      image(croissants[this.image], this.location.x, this.location.y, this.size, this.size);
-    }
-
-    move(){
-        this.velocity.add(gravity);
-        this.velocity.add(wind);
-        this.location.add(this.velocity);
-
-        let colliding = this.amIColliding();
-
-        if(colliding){
-          //print("collision!")
-          this.velocity.x = this.velocity.x * -1;
-          this.velocity.y = this.velocity.y * -1;
-        }
-
-        if (this.location.x > width || this.location.x < 0){
-          this.velocity.x = this.velocity.x * -1;
-        }
-        if (this.location.y > height || this.location.y < 0){
-          this.velocity.y = this.velocity.y * -1;
-        }
-       //print(this.velocity.x);
-    }
-
-    amIColliding(){
-      //how big is our croissant? 10 pixels 10 pixels?
-      let hitbox = 10;
-      for (var i = 0; i < particles.length; i++) {
-          if( i != this.index){
-            let xIsTooClose = false;
-            let yIsTooClose = false;
-            //some particle's X AND that same particle's Y are close to my X And my Y
-            //is X close?
-            if ((abs(this.location.x - particles[i].location.x)) <= hitbox){
-              xIsTooClose = true;
-            }
-            if ((abs(this.location.y - particles[i].location.y)) <= hitbox){
-              yIsTooClose = true;
-            }
-            if(xIsTooClose && yIsTooClose){
-              return true;
-            }
-
-          }
-      }
-    }
-
-}
-
-
-//each particle is something like:
-//let thing = {x: 430, y: 200, size: 100, xSpeed: -0.6, ySpeed: 0.345};

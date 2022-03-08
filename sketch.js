@@ -1,12 +1,12 @@
 //current goal:
-//figure out how to make particles move in a sqiggly line
-//vs a straight line like our crossoint example
+//change porportions of objects and canvas size
+//and load in image with transparaent background
 
 
 //goals:
   //make individual objects, bugs, that move in a sqiggly
-  // spaghetti like pattern and shake simultaniusly
-  // they move unpredictably
+  //spaghetti like pattern and shake simultaniusly
+  //they move unpredictably
   //find image with transparent background
   //decide whether mouse to create particles is a desired
   //behavior like in boids sketch
@@ -22,7 +22,7 @@ let flock;
 
 function setup() {
   createCanvas(640, 360);
-  createP("Drag the mouse to generate new boids.");
+  createP("Click and drag the mouse to generate new boids.");
 
   flock = new Flock();
   // Add an initial set of boids into the system
@@ -35,6 +35,7 @@ function setup() {
 function draw() {
   background(51);
   flock.run();
+  print(mouseX);
 }
 
 // Add a new boid into the System
@@ -98,7 +99,7 @@ Boid.prototype.flock = function(boids) {
   let ali = this.align(boids);      // Alignment
   let coh = this.cohesion(boids);   // Cohesion
   // Arbitrarily weight these forces
-  sep.mult(1.5);
+  sep.mult(1000);
   ali.mult(1.0);
   coh.mult(1.0);
   // Add the force vectors to acceleration
@@ -238,4 +239,3 @@ Boid.prototype.cohesion = function(boids) {
 
 
 
-  

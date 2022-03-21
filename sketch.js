@@ -1,6 +1,8 @@
 //current goal:
-//change porportions of objects and canvas size
-//and load in image with transparaent background
+// .resize method
+// that will be something like img.resize
+// it’s custom method to the variable name of your image
+// might be a way to do it without the .resize method but i am not sure
 
 
 //goals:
